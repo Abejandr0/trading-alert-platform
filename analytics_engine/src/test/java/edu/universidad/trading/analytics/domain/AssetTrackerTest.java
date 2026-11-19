@@ -10,6 +10,7 @@ import edu.universidad.trading.contracts.AssetCode;
 import edu.universidad.trading.contracts.TickPriceRecord;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class AssetTrackerTest {
@@ -59,6 +60,17 @@ class AssetTrackerTest {
         }
         assertInstanceOf(NormalState.class, tracker.currentState());
         assertTrue(tracker.registrarPrecio(tick(15, "204800")).isPresent());
+    }
+
+    @Test
+    void rehydratesPriceWindowAndCooldown() {
+        AssetTracker tracker = AssetTracker.rehydrate(btc, new SmaStrategy(5),
+                List.of(new BigDecimal("100"), new BigDecimal("100"),
+                        new BigDecimal("100"), new BigDecimal("130")), 2);
+
+        assertTrue(tracker.registrarPrecio(tick(5, "200")).isEmpty());
+        assertTrue(tracker.registrarPrecio(tick(6, "300")).isEmpty());
+        assertTrue(tracker.registrarPrecio(tick(7, "400")).isPresent());
     }
 
     private TickPriceRecord tick(int seconds, String price) {

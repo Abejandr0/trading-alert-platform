@@ -24,6 +24,21 @@ public final class AssetTracker {
         this.indicator = indicator;
     }
 
+    public static AssetTracker rehydrate(
+            AssetCode code, IndicatorStrategy indicator, List<BigDecimal> previousPrices, int cooldownRemaining) {
+        AssetTracker tracker = new AssetTracker(code, indicator);
+        if (previousPrices == null || previousPrices.size() >= indicator.requiredSamples()
+                || previousPrices.stream().anyMatch(price -> price == null || price.signum() <= 0)
+                || cooldownRemaining < 0 || cooldownRemaining > 10) {
+            throw new IllegalArgumentException("invalid tracker history");
+        }
+        tracker.recentPrices.addAll(previousPrices);
+        if (cooldownRemaining > 0) {
+            tracker.state = new AlertFiredState(cooldownRemaining);
+        }
+        return tracker;
+    }
+
     public Optional<TradingSignal> registrarPrecio(TickPriceRecord tick) {
         if (tick == null || !assetCode.equals(tick.assetCode())) {
             throw new IllegalArgumentException("tick belongs to a different or missing asset");

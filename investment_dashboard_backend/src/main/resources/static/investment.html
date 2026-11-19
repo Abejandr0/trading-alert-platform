@@ -30,7 +30,7 @@
     ws.onclose = () => { status.textContent = 'Reconectando…'; setTimeout(connect, 1500); };
     ws.onmessage = ({data}) => {
       const signal = JSON.parse(data);
-      const code = signal.assetCode.value;
+      const code = signal.asset ?? signal.assetCode?.value;
       let card = cards.get(code);
       if (!card) {
         card = document.createElement('article');

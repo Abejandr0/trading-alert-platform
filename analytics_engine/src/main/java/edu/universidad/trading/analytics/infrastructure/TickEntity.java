@@ -34,4 +34,8 @@ class TickEntity {
         this.price = tick.price();
         this.timestamp = tick.timestamp();
     }
+
+    BigDecimal price() {
+        return price;
+    }
 }

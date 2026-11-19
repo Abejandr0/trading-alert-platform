@@ -29,7 +29,7 @@
     ws.onclose = () => { status.textContent = 'Reconectando…'; setTimeout(connect, 1500); };
     ws.onmessage = ({data}) => {
       const tick = JSON.parse(data);
-      const code = tick.assetCode.value;
+      const code = tick.asset ?? tick.assetCode?.value;
       let row = rows.get(code);
       if (!row) {
         row = document.createElement('tr');

@@ -47,4 +47,8 @@ class SignalEntity {
         this.sma = tradingSignal.sma();
         this.timestamp = payload.timestamp();
     }
+
+    Instant timestamp() {
+        return timestamp;
+    }
 }

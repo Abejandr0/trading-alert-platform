@@ -1,7 +1,7 @@
 package edu.universidad.trading.analytics.application;
 
 import edu.universidad.trading.analytics.domain.AssetTracker;
-import edu.universidad.trading.analytics.domain.SmaStrategy;
+import edu.universidad.trading.analytics.domain.IndicatorStrategy;
 import edu.universidad.trading.contracts.AssetCode;
 import edu.universidad.trading.contracts.TickPriceRecord;
 import java.util.Map;
@@ -17,19 +17,25 @@ public class AnalyticsService {
     private final TickHistoryPort ticks;
     private final SignalHistoryPort signals;
     private final SignalOutboxPort outbox;
+    private final IndicatorStrategy indicator;
     private final Map<AssetCode, AssetTracker> trackers = new ConcurrentHashMap<>();
 
-    public AnalyticsService(TickHistoryPort ticks, SignalHistoryPort signals, SignalOutboxPort outbox) {
+    public AnalyticsService(
+            TickHistoryPort ticks, SignalHistoryPort signals, SignalOutboxPort outbox,
+            IndicatorStrategy indicator) {
         this.ticks = ticks;
         this.signals = signals;
         this.outbox = outbox;
+        this.indicator = indicator;
     }
 
     @Transactional
     public void process(TickPriceRecord tick) {
-        ticks.save(tick);
         AssetTracker tracker = trackers.computeIfAbsent(
-                tick.assetCode(), code -> new AssetTracker(code, new SmaStrategy(5)));
+                tick.assetCode(), this::restoreTracker);
+        if (!ticks.saveIfAbsent(tick)) {
+            return;
+        }
         synchronized (tracker) {
             AssetTracker.Snapshot before = tracker.snapshot();
             if (TransactionSynchronizationManager.isSynchronizationActive()) {
@@ -54,5 +60,14 @@ public class AnalyticsService {
                 throw ex;
             }
         }
+    }
+
+    private AssetTracker restoreTracker(AssetCode code) {
+        long ticksSinceAlert = signals.latestTimestamp(code)
+                .map(timestamp -> ticks.countSince(code, timestamp))
+                .orElse(10L);
+        int remainingCooldown = (int) Math.max(0L, 10L - ticksSinceAlert);
+        return AssetTracker.rehydrate(code, indicator,
+                ticks.recentPrices(code), remainingCooldown);
     }
 }

@@ -35,18 +35,6 @@ public class FeedConfiguration {
     }
 
     @Bean
-    Queue feedLiveTicksQueue() {
-        return new Queue("live_dashboard_ticks", true);
-    }
-
-    @Bean
-    Binding feedLiveTicksBinding(
-            @Qualifier("feedLiveTicksQueue") Queue feedLiveTicksQueue,
-            TopicExchange marketTicksExchange) {
-        return BindingBuilder.bind(feedLiveTicksQueue).to(marketTicksExchange).with("ticks.#");
-    }
-
-    @Bean
     ScenarioGenerator scenarioGenerator(FeedProperties properties) {
         return new ScenarioGenerator(properties.seed());
     }
