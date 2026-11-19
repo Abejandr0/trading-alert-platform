@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: market-data-feed
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: 5672
+    username: ${RABBITMQ_USER:trader}
+    password: ${RABBITMQ_PASSWORD:trader}
+feed:
+  interval-ms: 1000
+  seed: 42
+  scenarios:
+    - asset-code: BTC
+      market: crypto
+      base-price: 60000
+      volatility-percent: 0.7
+      spike-every-ticks: 20
+      spike-multiplier: 1.25
+    - asset-code: ETH
+      market: crypto
+      base-price: 3200
+      volatility-percent: 0.8
+      spike-every-ticks: 25
+      spike-multiplier: 1.22
+    - asset-code: SOL
+      market: crypto
+      base-price: 150
+      volatility-percent: 1.0
+      spike-every-ticks: 30
+      spike-multiplier: 1.25
+    - asset-code: EUR/USD
+      market: forex
+      base-price: 1.08
+      volatility-percent: 0.2
+      spike-every-ticks: 35
+      spike-multiplier: 1.20
+    - asset-code: GOOGL
+      market: stock
+      base-price: 180
+      volatility-percent: 0.4
+      spike-every-ticks: 40
+      spike-multiplier: 1.24

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ticker en vivo</title>
+  <style>
+    body{font:16px system-ui,sans-serif;background:#0d1321;color:#eaf0ff;margin:0;padding:2rem}
+    main{max-width:760px;margin:auto}h1{margin-bottom:.25rem}
+    .status{color:#8fb4ff;margin-bottom:2rem}
+    table{width:100%;border-collapse:collapse;background:#17213a;border-radius:12px;overflow:hidden}
+    th,td{text-align:left;padding:1rem;border-bottom:1px solid #293550}th{color:#9aaed2}
+    .price{font-variant-numeric:tabular-nums;font-weight:700;color:#75e0b4}
+  </style>
+</head>
+<body>
+<main>
+  <h1>Mercado en vivo</h1>
+  <p class="status" id="status">Conectando…</p>
+  <table><thead><tr><th>Activo</th><th>Precio</th><th>Último tick</th></tr></thead><tbody id="ticks"></tbody></table>
+</main>
+<script>
+  const rows = new Map();
+  const body = document.getElementById('ticks');
+  const status = document.getElementById('status');
+  function connect() {
+    const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/ticks');
+    ws.onopen = () => status.textContent = 'Conectado';
+    ws.onclose = () => { status.textContent = 'Reconectando…'; setTimeout(connect, 1500); };
+    ws.onmessage = ({data}) => {
+      const tick = JSON.parse(data);
+      const code = tick.assetCode.value;
+      let row = rows.get(code);
+      if (!row) {
+        row = document.createElement('tr');
+        row.innerHTML = '<td></td><td class="price"></td><td></td>';
+        rows.set(code, row);
+        body.append(row);
+      }
+      row.cells[0].textContent = code;
+      row.cells[1].textContent = Number(tick.price).toLocaleString('es-CO', {maximumFractionDigits: 8});
+      row.cells[2].textContent = new Date(tick.timestamp).toLocaleTimeString();
+    };
+  }
+  connect();
+</script>
+</body>
+</html>

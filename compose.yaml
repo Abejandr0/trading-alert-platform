@@ -1,0 +1,252 @@
+x-java-limits: &java-limits
+  resources:
+    limits:
+      cpus: "0.50"
+      memory: 384M
+
+x-analytics-limits: &analytics-limits
+  resources:
+    limits:
+      cpus: "0.75"
+      memory: 512M
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.9.11
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      KAFKA_HEAP_OPTS: -Xms128m -Xmx256m
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_log:/var/lib/zookeeper/log
+    networks: [messaging]
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 384M
+
+  kafka:
+    image: confluentinc/cp-kafka:7.9.11
+    depends_on:
+      zookeeper:
+        condition: service_started
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_HEAP_OPTS: -Xms256m -Xmx512m
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+    networks: [messaging]
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 1G
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.9.11
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - >
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists
+        --topic historical_ticks --partitions 3 --replication-factor 1;
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists
+        --topic trading_signals --partitions 3 --replication-factor 1
+    networks: [messaging]
+
+  rabbitmq:
+    image: rabbitmq:4.1-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-trader}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-trader}
+    ports:
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+    networks: [messaging, public]
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 512M
+
+  postgres-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: trading
+      POSTGRES_USER: ${DB_USER:-trader}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-trader}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-trader} -d trading"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [persistence]
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 512M
+
+  market_data_feed:
+    build:
+      context: .
+      dockerfile: market_data_feed/Dockerfile
+      args: {MODULE: market_data_feed}
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER:-trader}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-trader}
+    depends_on:
+      rabbitmq: {condition: service_healthy}
+    networks: [messaging]
+    deploy: *java-limits
+
+  live_dashboard_backend:
+    build:
+      context: .
+      dockerfile: live_dashboard_backend/Dockerfile
+      args: {MODULE: live_dashboard_backend}
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER:-trader}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-trader}
+    depends_on:
+      rabbitmq: {condition: service_healthy}
+    ports:
+      - "8081:8081"
+    networks: [messaging, public]
+    deploy: *java-limits
+
+  ingestion_bridge:
+    build:
+      context: .
+      dockerfile: ingestion_bridge/Dockerfile
+      args: {MODULE: ingestion_bridge}
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER:-trader}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-trader}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      rabbitmq: {condition: service_healthy}
+      kafka-init: {condition: service_completed_successfully}
+    networks: [messaging]
+    deploy: *java-limits
+
+  analytics_engine:
+    build:
+      context: .
+      dockerfile: analytics_engine/Dockerfile
+      args: {MODULE: analytics_engine}
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      DB_URL: jdbc:postgresql://postgres-db:5432/trading
+      DB_USER: ${DB_USER:-trader}
+      DB_PASSWORD: ${DB_PASSWORD:-trader}
+    depends_on:
+      kafka-init: {condition: service_completed_successfully}
+      postgres-db: {condition: service_healthy}
+    networks: [messaging, persistence]
+    deploy: *analytics-limits
+
+  investment_dashboard_backend:
+    build:
+      context: .
+      dockerfile: investment_dashboard_backend/Dockerfile
+      args: {MODULE: investment_dashboard_backend}
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      kafka-init: {condition: service_completed_successfully}
+    ports:
+      - "8082:8082"
+    networks: [messaging, public]
+    deploy: *java-limits
+
+  notification_router:
+    build:
+      context: .
+      dockerfile: notification_router/Dockerfile
+      args: {MODULE: notification_router}
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER:-trader}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-trader}
+      DB_URL: jdbc:postgresql://postgres-db:5432/trading
+      DB_USER: ${DB_USER:-trader}
+      DB_PASSWORD: ${DB_PASSWORD:-trader}
+    depends_on:
+      kafka-init: {condition: service_completed_successfully}
+      rabbitmq: {condition: service_healthy}
+      postgres-db: {condition: service_healthy}
+    networks: [messaging, persistence]
+    deploy: *analytics-limits
+
+  email_worker:
+    build:
+      context: .
+      dockerfile: email_worker/Dockerfile
+      args: {MODULE: email_worker}
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER:-trader}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-trader}
+    depends_on:
+      rabbitmq: {condition: service_healthy}
+    networks: [messaging]
+    deploy:
+      <<: *java-limits
+      replicas: 2
+
+  console_alert_worker:
+    build:
+      context: .
+      dockerfile: console_alert_worker/Dockerfile
+      args: {MODULE: console_alert_worker}
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER:-trader}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-trader}
+    depends_on:
+      rabbitmq: {condition: service_healthy}
+    networks: [messaging]
+    deploy: *java-limits
+
+networks:
+  messaging:
+    internal: true
+  persistence:
+    internal: true
+  public:
+
+volumes:
+  postgres_data:
+  kafka_data:
+  zookeeper_data:
+  zookeeper_log:

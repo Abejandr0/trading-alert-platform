@@ -46,4 +46,28 @@ public final class AssetTracker {
     AssetState currentState() {
         return state;
     }
+
+    /** Captura el estado para recuperar el agregado si falla la transacción externa. */
+    public Snapshot snapshot() {
+        return new Snapshot(List.copyOf(recentPrices), state);
+    }
+
+    public void restore(Snapshot snapshot) {
+        if (snapshot == null) {
+            throw new IllegalArgumentException("snapshot is required");
+        }
+        recentPrices.clear();
+        recentPrices.addAll(snapshot.prices);
+        state = snapshot.state;
+    }
+
+    public static final class Snapshot {
+        private final List<BigDecimal> prices;
+        private final AssetState state;
+
+        private Snapshot(List<BigDecimal> prices, AssetState state) {
+            this.prices = prices;
+            this.state = state;
+        }
+    }
 }

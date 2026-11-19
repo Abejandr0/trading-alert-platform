@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Señales de inversión</title>
+  <style>
+    body{font:16px system-ui,sans-serif;background:#101821;color:#f2f6fa;margin:0;padding:2rem}
+    main{max-width:780px;margin:auto}h1{margin-bottom:.25rem}
+    .status{color:#a1b4c4;margin-bottom:2rem}
+    .signals{display:grid;gap:1rem}
+    article{background:#1b2935;border-left:5px solid #5ad7a5;padding:1rem 1.25rem;border-radius:8px}
+    strong{font-size:1.25rem}.type{color:#5ad7a5;font-weight:700;margin-left:1rem}
+    small{display:block;color:#9db1bf;margin-top:.5rem}
+  </style>
+</head>
+<body>
+<main>
+  <h1>Decisiones de inversión</h1>
+  <p class="status" id="status">Conectando…</p>
+  <div class="signals" id="signals"></div>
+</main>
+<script>
+  const cards = new Map();
+  const container = document.getElementById('signals');
+  const status = document.getElementById('status');
+  function connect() {
+    const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/signals');
+    ws.onopen = () => status.textContent = 'Conectado';
+    ws.onclose = () => { status.textContent = 'Reconectando…'; setTimeout(connect, 1500); };
+    ws.onmessage = ({data}) => {
+      const signal = JSON.parse(data);
+      const code = signal.assetCode.value;
+      let card = cards.get(code);
+      if (!card) {
+        card = document.createElement('article');
+        cards.set(code, card);
+        container.prepend(card);
+      }
+      card.replaceChildren();
+      const title = document.createElement('strong');
+      title.textContent = code;
+      const type = document.createElement('span');
+      type.className = 'type';
+      type.textContent = signal.signal === 'BUY' ? 'COMPRAR' : signal.signal;
+      const reason = document.createElement('small');
+      reason.textContent = signal.reason + ' · ' + new Date(signal.timestamp).toLocaleString();
+      card.append(title, type, reason);
+    };
+  }
+  connect();
+</script>
+</body>
+</html>
