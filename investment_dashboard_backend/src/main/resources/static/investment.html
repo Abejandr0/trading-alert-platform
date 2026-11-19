@@ -3,52 +3,216 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Señales de inversión</title>
+  <meta name="theme-color" content="#f5f7f6">
+  <title>Señales de inversión · Northstar</title>
   <style>
-    body{font:16px system-ui,sans-serif;background:#101821;color:#f2f6fa;margin:0;padding:2rem}
-    main{max-width:780px;margin:auto}h1{margin-bottom:.25rem}
-    .status{color:#a1b4c4;margin-bottom:2rem}
-    .signals{display:grid;gap:1rem}
-    article{background:#1b2935;border-left:5px solid #5ad7a5;padding:1rem 1.25rem;border-radius:8px}
-    strong{font-size:1.25rem}.type{color:#5ad7a5;font-weight:700;margin-left:1rem}
-    small{display:block;color:#9db1bf;margin-top:.5rem}
+    :root {
+      color-scheme: light;
+      --ink: #172522;
+      --muted: #71817b;
+      --line: #e8eeeb;
+      --surface: #fff;
+      --canvas: #f5f7f6;
+      --green: #087f5b;
+      --green-soft: #e7f5ef;
+      --shadow: 0 18px 48px rgba(24, 43, 36, .055);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--canvas); color: var(--ink); font: 15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    .topbar { height: 76px; border-bottom: 1px solid var(--line); background: rgba(255,255,255,.86); }
+    .topbar-inner { width: min(1180px, calc(100% - 48px)); height: 100%; margin: auto; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+    .brand { display: flex; align-items: center; gap: 11px; font-size: 16px; font-weight: 750; letter-spacing: -.04em; }
+    .brand-mark { display: grid; place-items: center; width: 34px; height: 34px; color: #fff; background: #123d32; border-radius: 11px; }
+    .brand-mark svg { width: 19px; height: 19px; }
+    .brand-sub { color: #84918c; font-size: 11px; font-weight: 650; letter-spacing: .13em; margin-left: 3px; text-transform: uppercase; }
+    nav { display: flex; align-items: center; gap: 5px; padding: 4px; border: 1px solid var(--line); background: #f8faf9; border-radius: 13px; }
+    nav a { padding: 8px 13px; border-radius: 9px; color: #72807b; font-size: 13px; font-weight: 650; transition: background .18s, color .18s; }
+    nav a:hover { color: var(--ink); background: #edf2ef; }
+    nav a.active { color: #14533f; background: #fff; box-shadow: 0 1px 4px rgba(23,37,34,.09); }
+    .live-pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 11px; color: #51615b; border: 1px solid var(--line); border-radius: 999px; background: #fff; font-size: 12px; font-weight: 650; white-space: nowrap; }
+    .dot { width: 7px; height: 7px; background: #b5c0ba; border-radius: 50%; }
+    .live-pill.connected .dot { background: #18a875; box-shadow: 0 0 0 4px rgba(24,168,117,.12); animation: breathe 2s infinite; }
+    .live-pill.reconnecting .dot { background: #d99b35; }
+    @keyframes breathe { 50% { box-shadow: 0 0 0 7px rgba(24,168,117,0); } }
+    main { width: min(1180px, calc(100% - 48px)); margin: 0 auto; padding: 55px 0 72px; }
+    .hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 31px; }
+    .eyebrow { display: flex; align-items: center; gap: 9px; margin: 0 0 12px; color: var(--green); font-size: 11px; font-weight: 750; letter-spacing: .15em; text-transform: uppercase; }
+    .eyebrow-mark { width: 20px; height: 1px; background: #64b997; }
+    h1 { margin: 0; font-size: clamp(32px, 4vw, 46px); font-weight: 680; letter-spacing: -.055em; line-height: 1.08; }
+    .subtitle { max-width: 590px; margin: 12px 0 0; color: var(--muted); font-size: 15px; }
+    .source-tag { display: flex; align-items: center; gap: 9px; padding: 11px 13px; border: 1px solid #dfe9e4; background: #fff; border-radius: 12px; color: #4c5d55; font-size: 12px; font-weight: 650; white-space: nowrap; }
+    .source-tag svg { color: var(--green); }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 29px; }
+    .stat { min-height: 116px; padding: 20px 22px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 4px 15px rgba(24,43,36,.025); }
+    .stat-top { display: flex; align-items: center; justify-content: space-between; gap: 14px; color: var(--muted); font-size: 12px; font-weight: 600; }
+    .stat-icon { display: grid; place-items: center; width: 29px; height: 29px; color: var(--green); background: #edf7f2; border-radius: 9px; }
+    .stat-icon svg { width: 16px; height: 16px; }
+    .stat-value { margin-top: 10px; font-size: 25px; font-weight: 690; letter-spacing: -.045em; font-variant-numeric: tabular-nums; }
+    .stat-note { margin-left: 7px; color: #89958f; font-size: 11px; font-weight: 550; letter-spacing: 0; }
+    .section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; margin: 0 0 15px; }
+    .section-title { margin: 0; font-size: 16px; font-weight: 710; letter-spacing: -.025em; }
+    .section-caption { margin: 4px 0 0; color: #89958f; font-size: 12px; }
+    .section-count { color: #74827b; font-size: 12px; font-weight: 620; white-space: nowrap; }
+    .signals { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
+    .signal-card { position: relative; overflow: hidden; min-height: 198px; padding: 20px 21px 17px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 5px 18px rgba(24,43,36,.03); transition: transform .18s, box-shadow .18s, border-color .18s; }
+    .signal-card:hover { transform: translateY(-2px); border-color: #d7e7de; box-shadow: var(--shadow); }
+    .signal-card::before { position: absolute; inset: 0 auto 0 0; width: 3px; background: #1aa477; content: ""; }
+    .signal-card.flash { animation: card-flash 1s ease-out; }
+    @keyframes card-flash { 0% { background: #e9f8f0; } 100% { background: #fff; } }
+    .card-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .buy-badge { display: inline-flex; align-items: center; gap: 7px; padding: 6px 9px; color: #087451; background: #e8f6ef; border: 1px solid #d7efe2; border-radius: 8px; font-size: 10px; font-weight: 760; letter-spacing: .1em; }
+    .buy-badge .dot { width: 6px; height: 6px; background: #18a875; }
+    .signal-time { color: #87938d; font-size: 11px; font-variant-numeric: tabular-nums; }
+    .asset-block { display: flex; align-items: center; gap: 12px; margin: 19px 0 15px; }
+    .asset-icon { display: grid; place-items: center; width: 43px; height: 43px; flex: 0 0 43px; color: #1c6249; background: #edf6f0; border: 1px solid #e0eee5; border-radius: 13px; font-size: 11px; font-weight: 800; letter-spacing: -.04em; }
+    .asset-code { margin: 0; color: #1d3028; font-size: 20px; font-weight: 730; letter-spacing: -.04em; }
+    .asset-subtitle { margin: 2px 0 0; color: #849189; font-size: 11px; }
+    .reason { display: flex; align-items: flex-start; gap: 8px; min-height: 32px; padding-top: 11px; border-top: 1px solid #eef2ef; color: #58675f; font-size: 12px; }
+    .reason svg { flex: 0 0 14px; margin-top: 1px; color: #8aa497; }
+    .card-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 13px; color: #a0aaa5; font-size: 10px; }
+    .event-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .empty { grid-column: 1 / -1; padding: 57px 20px; text-align: center; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
+    .empty-symbol { display: grid; place-items: center; width: 48px; height: 48px; margin: 0 auto 13px; color: var(--green); background: var(--green-soft); border-radius: 15px; }
+    .empty-symbol svg { width: 22px; height: 22px; }
+    .empty-title { margin: 0; font-size: 14px; font-weight: 680; }
+    .empty-copy { margin: 5px 0 0; color: #87938d; font-size: 12px; }
+    footer { display: flex; justify-content: space-between; gap: 16px; margin-top: 20px; color: #929d97; font-size: 11px; }
+    @media (max-width: 760px) {
+      .topbar { height: auto; }
+      .topbar-inner { width: min(100% - 30px, 560px); min-height: 70px; flex-wrap: wrap; gap: 10px; padding: 12px 0; }
+      .brand-sub { display: none; }
+      nav { order: 3; width: 100%; justify-content: center; }
+      nav a { flex: 1; text-align: center; }
+      .live-pill { margin-left: auto; }
+      main { width: min(100% - 30px, 560px); padding-top: 37px; }
+      .hero { align-items: flex-start; flex-direction: column; margin-bottom: 23px; }
+      .source-tag { display: none; }
+      .stats { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 25px; }
+      .stat { min-height: 102px; padding: 16px; }
+      .stat:last-child { grid-column: 1 / -1; }
+      .stat-value { font-size: 22px; }
+      .signals { grid-template-columns: 1fr; }
+      .signal-card { min-height: 187px; padding: 18px; }
+      footer { flex-direction: column; gap: 5px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
   </style>
 </head>
 <body>
-<main>
-  <h1>Decisiones de inversión</h1>
-  <p class="status" id="status">Conectando…</p>
-  <div class="signals" id="signals"></div>
-</main>
-<script>
-  const cards = new Map();
-  const container = document.getElementById('signals');
-  const status = document.getElementById('status');
-  function connect() {
-    const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/signals');
-    ws.onopen = () => status.textContent = 'Conectado';
-    ws.onclose = () => { status.textContent = 'Reconectando…'; setTimeout(connect, 1500); };
-    ws.onmessage = ({data}) => {
-      const signal = JSON.parse(data);
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#" aria-label="Northstar Trading, inicio">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 16.5 9 11l3.1 3.1L20 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14.5 6H20v5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span>northstar<span class="brand-sub">trading</span></span>
+      </a>
+      <nav aria-label="Navegación principal">
+        <a id="market-link" href="#">Mercado en vivo</a>
+        <a class="active" href="#signals" aria-current="page">Señales</a>
+      </nav>
+      <div class="live-pill" id="connection" role="status" aria-live="polite"><span class="dot"></span><span id="connection-text">Conectando</span></div>
+    </div>
+  </header>
+
+  <main id="signals">
+    <section class="hero" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow"><span class="eyebrow-mark"></span> Motor analítico · Cold path</p>
+        <h1 id="page-title">Señales de inversión</h1>
+        <p class="subtitle">Alertas generadas cuando el momentum supera el umbral técnico configurado.</p>
+      </div>
+      <div class="source-tag"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7.5h16M4 12h16M4 16.5h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="8" cy="7.5" r="1.5" fill="white" stroke="currentColor" stroke-width="1.5"/><circle cx="15" cy="12" r="1.5" fill="white" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="16.5" r="1.5" fill="white" stroke="currentColor" stroke-width="1.5"/></svg> Señales persistidas en Kafka</div>
+    </section>
+
+    <section class="stats" aria-label="Resumen de señales">
+      <article class="stat"><div class="stat-top"><span>Señales recibidas</span><span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3v18M5 10l7-7 7 7M5 14l7 7 7-7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div><div class="stat-value"><span id="signal-total">0</span><span class="stat-note">en esta sesión</span></div></article>
+      <article class="stat"><div class="stat-top"><span>Activos con señal</span><span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 19c.4-3 2.3-4.5 5.5-4.5s5.1 1.5 5.5 4.5M16 5.5a3 3 0 0 1 0 5.8M17 14.5c2.1.5 3.3 2 3.5 4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span></div><div class="stat-value"><span id="asset-count">0</span><span class="stat-note">activos</span></div></article>
+      <article class="stat"><div class="stat-top"><span>Última señal</span><span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.7"/><path d="M12 7v5l3.5 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span></div><div class="stat-value"><span id="last-update">—</span><span class="stat-note">hora local</span></div></article>
+    </section>
+
+    <section aria-labelledby="feed-heading">
+      <div class="section-head"><div><h2 class="section-title" id="feed-heading">Feed de señales</h2><p class="section-caption">Una tarjeta por activo · Se muestra la recomendación más reciente</p></div><span class="section-count" id="visible-count">Esperando eventos</span></div>
+      <div class="signals" id="signal-list">
+        <div class="empty" id="empty-state">
+          <span class="empty-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3v18M5 10l7-7 7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <p class="empty-title">Aún no hay señales</p><p class="empty-copy">Cuando el motor detecte momentum, la recomendación aparecerá aquí.</p>
+        </div>
+      </div>
+    </section>
+    <footer><span>Señales simuladas para demostración · Northstar Trading</span><span>Una señal informativa no ejecuta una orden de compra o venta.</span></footer>
+  </main>
+
+  <script>
+    const cards = new Map();
+    const container = document.getElementById('signal-list');
+    const emptyState = document.getElementById('empty-state');
+    const connection = document.getElementById('connection');
+    const connectionText = document.getElementById('connection-text');
+    let reconnectDelay = 1000;
+    let receivedSignals = 0;
+    let reconnectTimer;
+
+    document.getElementById('market-link').href = `${location.protocol}//${location.hostname}:8081/live_ticker.html`;
+
+    function createCard(code) {
+      const card = document.createElement('article');
+      card.className = 'signal-card';
+      card.innerHTML = '<div class="card-top"><span class="buy-badge"><span class="dot"></span><span class="signal-label">COMPRA</span></span><time class="signal-time"></time></div><div class="asset-block"><span class="asset-icon"></span><div><h3 class="asset-code"></h3><p class="asset-subtitle">Momentum detectado</p></div></div><div class="reason"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M12 11v5M12 7.5h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span class="reason-text"></span></div><div class="card-footer"><span>EVENTO · <span class="event-code"></span></span><span class="channel-label">KAFKA → DASHBOARD</span></div>';
+      card.querySelector('.asset-code').textContent = code;
+      card.querySelector('.asset-icon').textContent = code === 'EUR/USD' ? '€/$' : code.slice(0, 2);
+      return card;
+    }
+
+    function renderSignal(signal) {
       const code = signal.asset ?? signal.assetCode?.value;
+      const timestamp = new Date(signal.timestamp);
+      if (!code || Number.isNaN(timestamp.getTime())) return;
       let card = cards.get(code);
       if (!card) {
-        card = document.createElement('article');
+        card = createCard(code);
         cards.set(code, card);
-        container.prepend(card);
+        emptyState.hidden = true;
       }
-      card.replaceChildren();
-      const title = document.createElement('strong');
-      title.textContent = code;
-      const type = document.createElement('span');
-      type.className = 'type';
-      type.textContent = signal.signal === 'BUY' ? 'COMPRAR' : signal.signal;
-      const reason = document.createElement('small');
-      reason.textContent = signal.reason + ' · ' + new Date(signal.timestamp).toLocaleString();
-      card.append(title, type, reason);
-    };
-  }
-  connect();
-</script>
+      const label = signal.signal === 'BUY' ? 'COMPRA' : String(signal.signal || 'SEÑAL').toUpperCase();
+      card.querySelector('.signal-label').textContent = label;
+      card.querySelector('.signal-time').dateTime = timestamp.toISOString();
+      card.querySelector('.signal-time').textContent = timestamp.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
+      card.querySelector('.reason-text').textContent = signal.reason || 'Señal emitida por el motor analítico';
+      card.querySelector('.event-code').textContent = signal.eventId ? signal.eventId.slice(0, 8).toUpperCase() : 'LEGACY';
+      card.querySelector('.channel-label').textContent = signal.signal === 'BUY' ? 'MOMENTUM ALCISTA' : 'MOTOR ANALÍTICO';
+      card.classList.remove('flash');
+      container.prepend(card);
+      requestAnimationFrame(() => card.classList.add('flash'));
+      receivedSignals += 1;
+      document.getElementById('signal-total').textContent = receivedSignals;
+      document.getElementById('asset-count').textContent = cards.size;
+      document.getElementById('last-update').textContent = timestamp.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      document.getElementById('visible-count').textContent = `${cards.size} ${cards.size === 1 ? 'activo' : 'activos'}`;
+    }
+
+    function connect() {
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const socket = new WebSocket(`${protocol}//${location.host}/ws/signals`);
+      socket.onopen = () => {
+        reconnectDelay = 1000;
+        connection.className = 'live-pill connected';
+        connectionText.textContent = 'Feed conectado';
+      };
+      socket.onmessage = ({ data }) => {
+        try { renderSignal(JSON.parse(data)); }
+        catch (error) { console.error('No se pudo procesar la señal recibida', error); }
+      };
+      socket.onerror = () => socket.close();
+      socket.onclose = () => {
+        connection.className = 'live-pill reconnecting';
+        connectionText.textContent = 'Reconectando';
+        document.getElementById('visible-count').textContent = cards.size ? `${cards.size} activos · conexión pausada` : 'Conexión pausada';
+        clearTimeout(reconnectTimer);
+        reconnectTimer = setTimeout(connect, reconnectDelay);
+        reconnectDelay = Math.min(reconnectDelay * 2, 10000);
+      };
+    }
+    connect();
+  </script>
 </body>
 </html>
