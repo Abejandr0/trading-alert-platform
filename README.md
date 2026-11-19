@@ -25,6 +25,8 @@ cp .env.example .env
 
 El archivo de ejemplo usa credenciales locales de desarrollo. Cámbialas antes de desplegar y suministra las credenciales de producción mediante el gestor de secretos del entorno. Los puertos de dashboards y RabbitMQ Management quedan ligados a `127.0.0.1`; el Compose local no configura TLS. Para exponer servicios fuera del equipo, usa un proxy de entrada con HTTPS y certificados.
 
+Para una demostración directa desde una IP pública de Lightsail, configura `BIND_ADDRESS=0.0.0.0` en `.env`, abre únicamente TCP 8081 y 8082 en el firewall de Lightsail y visita `http://IP_PUBLICA:8081/live_ticker.html` o `http://IP_PUBLICA:8082/investment.html`. Es HTTP sin cifrar; para uso público persistente, coloca un proxy HTTPS delante. No publiques RabbitMQ Management (15672), RabbitMQ AMQP (5672), Kafka (9092) ni PostgreSQL (5432).
+
 ```bash
 docker compose up --build -d
 docker compose ps
