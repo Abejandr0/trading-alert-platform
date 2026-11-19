@@ -6,6 +6,10 @@ spring:
     port: 5672
     username: ${RABBITMQ_USER:trader}
     password: ${RABBITMQ_PASSWORD:trader}
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
 feed:
   interval-ms: 1000
   seed: 42

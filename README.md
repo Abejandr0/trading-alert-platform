@@ -15,7 +15,7 @@ market_data_feed ─ RabbitMQ market_ticks ─┬─ live_dashboard_backend ─ 
                                                                                        └─ console_alerts ─ console_alert_worker
 ```
 
-RabbitMQ distribuye precios transitorios sin consultar la base de datos en la ruta caliente. Kafka conserva el historial y ordena los ticks de cada activo por su clave de partición. PostgreSQL audita ticks, señales y despachos; la tabla de salida permite reintentar publicaciones de señales sin perder el registro transaccional.
+RabbitMQ distribuye precios transitorios sin consultar la base de datos en la ruta caliente. El feed espera la confirmación del broker y detecta ticks sin ruta. Kafka conserva el historial y ordena los ticks de cada activo por su clave de partición. PostgreSQL audita ticks, señales y despachos; la tabla de salida permite reintentar publicaciones de señales sin perder el registro transaccional.
 
 ## Iniciar
 
