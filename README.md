@@ -59,8 +59,9 @@ docker compose logs -f analytics_engine notification_router email_worker console
 - Tras la alerta, se ignoran diez ticks; el undécimo se vuelve a evaluar.
 - Flyway crea `ticks`, `signals`, `signal_outbox` y `notification_dispatches`. Las tablas históricas y de despacho tienen índices `(asset_code, timestamp DESC)`; los ticks tienen además una clave única `(asset_code, timestamp)`.
 - El motor omite ticks reentregados. Al reiniciar, recupera los últimos cuatro precios y el cooldown restante desde PostgreSQL.
+- Cada señal lleva un `eventId` estable; el router registra una sola reserva por evento y canal y omite reentregas ya completadas.
 - La cola del ticker es transitoria, caduca tras cinco segundos y conserva como máximo 50 mensajes. El envío WebSocket usa una cola acotada para que un cliente lento no frene el consumo RabbitMQ.
-- La entrega entre brokers es al menos una vez: un fallo entre publicación y confirmación puede duplicar un evento.
+- La entrega entre brokers es al menos una vez: una caída después de que RabbitMQ acepta un mensaje y antes de marcar el despacho en PostgreSQL todavía puede repetirlo.
 - El estado operativo reside en memoria y se reconstruye desde el historial al reiniciar. Los ocho servicios asignados no incluyen un flujo de órdenes.
 
 ## Desarrollo

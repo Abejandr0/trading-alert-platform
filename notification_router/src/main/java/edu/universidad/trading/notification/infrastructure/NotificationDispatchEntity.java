@@ -9,6 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.UUID;
 
 @Entity
 @Table(name = "notification_dispatches")
@@ -20,6 +21,9 @@ class NotificationDispatchEntity {
     @Column(name = "asset_code", nullable = false, length = 21)
     private String assetCode;
 
+    @Column(name = "event_id", nullable = false)
+    private UUID eventId;
+
     @Column(name = "signal", nullable = false, length = 12)
     private String signal;
 
@@ -29,7 +33,7 @@ class NotificationDispatchEntity {
     @Column(name = "timestamp", nullable = false)
     private Instant timestamp;
 
-    @Column(name = "dispatched_at", nullable = false)
+    @Column(name = "dispatched_at")
     private Instant dispatchedAt;
 
     protected NotificationDispatchEntity() {
@@ -37,9 +41,9 @@ class NotificationDispatchEntity {
 
     NotificationDispatchEntity(SignalPayloadRecord payload, DispatchChannel channel) {
         this.assetCode = payload.assetCode().value();
+        this.eventId = payload.eventId();
         this.signal = payload.signal().name();
         this.channel = channel.name();
         this.timestamp = payload.timestamp();
-        this.dispatchedAt = Instant.now();
     }
 }

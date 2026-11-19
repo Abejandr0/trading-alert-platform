@@ -14,9 +14,13 @@ public final class NotificationRouterService {
     }
 
     public void route(SignalPayloadRecord signal) {
-        channels.enqueueEmail(signal);
-        audit.record(signal, DispatchChannel.EMAIL);
-        channels.broadcastConsole(signal);
-        audit.record(signal, DispatchChannel.CONSOLE);
+        if (audit.claim(signal, DispatchChannel.EMAIL)) {
+            channels.enqueueEmail(signal);
+            audit.markDispatched(signal, DispatchChannel.EMAIL);
+        }
+        if (audit.claim(signal, DispatchChannel.CONSOLE)) {
+            channels.broadcastConsole(signal);
+            audit.markDispatched(signal, DispatchChannel.CONSOLE);
+        }
     }
 }
