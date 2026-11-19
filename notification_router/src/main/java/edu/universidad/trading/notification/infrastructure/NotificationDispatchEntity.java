@@ -12,7 +12,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "notification_dispatches")
+@Table(name = "notification_dispatches", schema = "notifications")
 class NotificationDispatchEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

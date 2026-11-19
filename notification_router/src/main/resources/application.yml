@@ -3,8 +3,8 @@ spring:
     name: notification-router
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/trading}
-    username: ${DB_USER:trader}
-    password: ${DB_PASSWORD:trader}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -25,9 +25,21 @@ spring:
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: 5672
-    username: ${RABBITMQ_USER:trader}
-    password: ${RABBITMQ_PASSWORD:trader}
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASSWORD}
     publisher-confirm-type: correlated
     publisher-returns: true
     template:
       mandatory: true
+
+management:
+  server:
+    port: 8080
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true

@@ -12,7 +12,7 @@ interface NotificationDispatchRepository extends JpaRepository<NotificationDispa
     @Modifying
     @Transactional
     @Query(value = """
-            INSERT INTO notification_dispatches
+            INSERT INTO notifications.notification_dispatches
                 (event_id, channel, asset_code, signal, timestamp, dispatched_at)
             VALUES (:eventId, :channel, :assetCode, :signal, :timestamp, NULL)
             ON CONFLICT (event_id, channel) DO NOTHING

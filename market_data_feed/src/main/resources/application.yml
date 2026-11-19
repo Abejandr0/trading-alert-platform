@@ -4,8 +4,8 @@ spring:
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: 5672
-    username: ${RABBITMQ_USER:trader}
-    password: ${RABBITMQ_PASSWORD:trader}
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASSWORD}
     publisher-confirm-type: correlated
     publisher-returns: true
     template:
@@ -44,3 +44,15 @@ feed:
       volatility-percent: 0.4
       spike-every-ticks: 40
       spike-multiplier: 1.24
+
+management:
+  server:
+    port: 8080
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true

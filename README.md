@@ -20,6 +20,12 @@ RabbitMQ distribuye precios transitorios sin consultar la base de datos en la ru
 ## Iniciar
 
 ```bash
+cp .env.example .env
+```
+
+El archivo de ejemplo usa credenciales locales de desarrollo. Cámbialas antes de desplegar y suministra las credenciales de producción mediante el gestor de secretos del entorno. Los puertos de dashboards y RabbitMQ Management quedan ligados a `127.0.0.1`; el Compose local no configura TLS. Para exponer servicios fuera del equipo, usa un proxy de entrada con HTTPS y certificados.
+
+```bash
 docker compose up --build -d
 docker compose ps
 ```
@@ -60,6 +66,8 @@ docker compose logs -f analytics_engine notification_router email_worker console
 - Flyway crea `ticks`, `signals`, `signal_outbox` y `notification_dispatches`. Las tablas históricas y de despacho tienen índices `(asset_code, timestamp DESC)`; los ticks tienen además una clave única `(asset_code, timestamp)`.
 - El motor omite ticks reentregados. Al reiniciar, recupera los últimos cuatro precios y el cooldown restante desde PostgreSQL.
 - Cada señal lleva un `eventId` estable; el router registra una sola reserva por evento y canal y omite reentregas ya completadas. Antes de marcar un despacho como enviado, espera la confirmación de RabbitMQ y falla si el mensaje no fue enrutado.
+- Los workers de RabbitMQ reintentan hasta tres veces con espera creciente. Si el mensaje continúa fallando, pasa a `notification_dead_letter_queue` para inspección; su cabecera `x-death` conserva el origen y los intentos.
+- Cada microservicio expone el health check de Actuator en `/actuator/health`. Compose lo consulta para reportar servicios que aún no están listos.
 - La cola del ticker es transitoria, caduca tras cinco segundos y conserva como máximo 50 mensajes. El envío WebSocket usa una cola acotada para que un cliente lento no frene el consumo RabbitMQ.
 - La entrega entre brokers es al menos una vez: las confirmaciones detectan rechazos y mensajes sin ruta, pero una caída después de que RabbitMQ acepta un mensaje y antes de marcar el despacho en PostgreSQL todavía puede repetirlo.
 - El estado operativo reside en memoria y se reconstruye desde el historial al reiniciar. Los ocho servicios asignados no incluyen un flujo de órdenes.

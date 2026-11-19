@@ -1,5 +1,6 @@
 package edu.universidad.trading.console.infrastructure;
 
+import java.util.Map;
 import org.springframework.amqp.core.AnonymousQueue;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
@@ -17,7 +18,9 @@ public class ConsoleFanoutConfiguration {
 
     @Bean
     Queue consoleQueue() {
-        return new AnonymousQueue();
+        return new AnonymousQueue(Map.of(
+                "x-dead-letter-exchange", "notification_dead_letters",
+                "x-dead-letter-routing-key", "console"));
     }
 
     @Bean
