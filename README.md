@@ -15,7 +15,7 @@ market_data_feed ─ RabbitMQ market_ticks ─┬─ live_dashboard_backend ─ 
                                                                                        └─ console_alerts ─ console_alert_worker
 ```
 
-RabbitMQ distribuye precios transitorios sin consultar la base de datos en la ruta caliente. El feed espera la confirmación del broker y detecta ticks sin ruta. Kafka conserva el historial y ordena los ticks de cada activo por su clave de partición. PostgreSQL audita ticks, señales y despachos; la tabla de salida permite reintentar publicaciones de señales sin perder el registro transaccional.
+RabbitMQ distribuye precios transitorios sin consultar la base de datos en la ruta caliente. El feed espera la confirmación del broker y detecta ticks sin ruta. Kafka corre en KRaft con un nodo combinado de broker y controller, una configuración local de un solo nodo; conserva el historial y ordena los ticks de cada activo por su clave de partición. PostgreSQL audita ticks, señales y despachos; la tabla de salida permite reintentar publicaciones de señales sin perder el registro transaccional.
 
 ## Iniciar
 
@@ -23,12 +23,14 @@ RabbitMQ distribuye precios transitorios sin consultar la base de datos en la ru
 cp .env.example .env
 ```
 
-El archivo de ejemplo usa credenciales locales de desarrollo. Cámbialas antes de desplegar y suministra las credenciales de producción mediante el gestor de secretos del entorno. Los puertos de dashboards y RabbitMQ Management quedan ligados a `127.0.0.1`; el Compose local no configura TLS. Para exponer servicios fuera del equipo, usa un proxy de entrada con HTTPS y certificados.
+El archivo de ejemplo usa credenciales locales de desarrollo y un ID de cluster KRaft de ejemplo. Genera un ID distinto para cada despliegue con `docker run --rm --entrypoint /bin/kafka-storage confluentinc/cp-kafka:7.9.11 random-uuid`; conserva el mismo `KAFKA_CLUSTER_ID` mientras reutilices el volumen `kafka_kraft_data`. Si ya tienes un `.env`, agrega allí `KAFKA_CLUSTER_ID`. Sustituye las credenciales de desarrollo por secretos del entorno antes de desplegar. Los puertos de dashboards y RabbitMQ Management quedan ligados a `127.0.0.1`; el Compose local no configura TLS. Para exponer servicios fuera del equipo, usa un proxy de entrada con HTTPS y certificados.
+
+Al cambiar desde ZooKeeper, Kafka usa un volumen KRaft nuevo (`kafka_kraft_data`): Compose no migra el historial Kafka anterior. Los volúmenes anteriores de Kafka y ZooKeeper se dejan intactos.
 
 Para una demostración directa desde una IP pública de Lightsail, configura `BIND_ADDRESS=0.0.0.0` en `.env`, abre únicamente TCP 8081 y 8082 en el firewall de Lightsail y visita `http://IP_PUBLICA:8081/live_ticker.html` o `http://IP_PUBLICA:8082/investment.html`. Es HTTP sin cifrar; para uso público persistente, coloca un proxy HTTPS delante. No publiques RabbitMQ Management (15672), RabbitMQ AMQP (5672), Kafka (9092) ni PostgreSQL (5432).
 
 ```bash
-docker compose up --build -d
+docker compose up --build -d --remove-orphans
 docker compose ps
 ```
 
@@ -42,7 +44,7 @@ El primer pico de BTC ocurre en el tick 20 del feed, unos 20 segundos después d
 docker compose logs -f analytics_engine notification_router email_worker console_alert_worker
 ```
 
-`docker compose down` detiene los servicios y conserva los volúmenes de PostgreSQL, Kafka y ZooKeeper. `docker compose down -v` también borra esos datos.
+`docker compose down` detiene los servicios y conserva los volúmenes de PostgreSQL y Kafka en KRaft. `docker compose down -v` también borra esos datos.
 
 ## Módulos
 
